@@ -12,25 +12,48 @@ source .venv/bin/activate  # or .venv\\Scripts\\activate on Windows
 pip install -r requirements.txt
 ```
 
-2. Initialize DB and seed demo data:
+2. Configure Supabase:
+
+Create `.env` in the repository root from `.env.example`, then set the Project URL and backend API key from **Supabase → Project Settings → API**. Keep `.env` private. In the Supabase SQL Editor, run [`supabase_schema.sql`](supabase_schema.sql).
+
+```env
+ENVIRONMENT=development
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_KEY=your-backend-only-key
+SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
+API_TOKEN=replace-with-a-long-random-token
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+`SUPABASE_KEY` is used by the application. `SUPABASE_SERVICE_ROLE_KEY` is used only by trusted maintenance commands such as `database/seed.py`; never expose it to the frontend.
+
+3. Initialize Supabase tables and seed demo zones:
 
 ```bash
 python database/seed.py
 ```
 
-3. (Optional) Train ML model:
+4. Verify the connection:
+
+```text
+http://localhost:8000/api/health
+```
+
+The health response should report `status: ok`, `database.reachable: true`, and a non-zero `zone_count`.
+
+5. (Optional) Train ML model:
 
 ```bash
 python -m ml.training.train
 ```
 
-4. Start backend:
+6. Start backend:
 
 ```bash
 make backend
 ```
 
-5. Frontend (in a separate terminal):
+7. Frontend (in a separate terminal):
 
 ```bash
 cd frontend
@@ -114,6 +137,37 @@ python -m ml.training.train
 
 If no real dataset exists, training creates `ml/datasets/processed/flood_demo_training.csv` from deterministic synthetic data and saves `ml/artifacts/flood_risk_model.pkl`. The synthetic dataset is only for demonstration and can be replaced with verified rainfall, elevation, drainage, population, flood history, and citizen report datasets.
 
+## Real Data Ingestion
+
+The ingestion boundary accepts downloaded provider files and does not silently substitute demo values:
+
+- IMDAA: NetCDF/NetCDF4 with specific humidity, pressure levels, temperature, and U/V wind variables.
+- INSAT-3D/3DR: NetCDF or HDF5 with water-vapor, calibrated thermal-infrared, and optional QPE variables.
+- DEM: GeoTIFF from SRTM, CartoDEM, or another licensed elevation source.
+
+Create these directories and place the newest files in each:
+
+```text
+data/imdaa/
+data/insat/
+data/dem/
+```
+
+Configure variable names in the adapter call when the provider product uses names other than the defaults in `ingestion/real_data.py`. Run the continuous worker with:
+
+```bash
+.venv\\Scripts\\python.exe worker\\worker.py
+```
+
+The worker records grids in `grid_observations`, run health in `ingestion_runs`, and derives IWV in kg/m2, CTT in Celsius, and DEM slope in degrees.
+
+### Manual provider steps
+
+1. Request IMDAA access from the authorized NCMRWF/India data portal and download a small NetCDF sample for the target region.
+2. Request MOSDAC access and confirm the INSAT-3D/3DR WV, TIR, and QPE product formats and calibration metadata.
+3. Download SRTM or CartoDEM GeoTIFF coverage for the monitored region and confirm its CRS/resolution.
+4. Place files in the configured directories and run `python worker/worker.py` once to validate ingestion.
+5. Configure `ALERT_WEBHOOK_URL` or `ALERT_SMS_WEBHOOK_URL` with the responder gateway endpoint. The delivery code records every attempt in `alert_deliveries`.
 ## Demo Flow
 
 1. Open BharatRisk AI.
