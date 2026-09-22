@@ -8,7 +8,7 @@ dist/
 **/build/
 *.db
 .env
-data/satellite/*
+data/
 ml/artifacts/*.pkl
 !ml/artifacts/.gitkeep
 /mosdac_data_downloads/config.json
