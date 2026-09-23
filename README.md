@@ -1,4 +1,4 @@
-# 🇮🇳 BharatRiskAI
+# BharatRiskAI
 
 ## Space-Powered Hyper-Local Severe Weather Early Warning System
 
@@ -1230,7 +1230,7 @@ The scientific forecasting performance depends on the availability, quality, cov
 
 ---
 
-# 🇮🇳 Vision
+# Vision
 
 BharatRiskAI aims to combine **space-based observations, atmospheric science, machine learning and resilient communication infrastructure** into a unified early-warning platform for India.
 
