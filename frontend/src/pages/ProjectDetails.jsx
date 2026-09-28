@@ -3,7 +3,7 @@ import { Activity, Bell, BrainCircuit, CloudRain, Database, GitBranch, Globe2, L
 const team = [
   { name: 'Anu Kumari Singh', role: 'Backend Developer', image: '/images/IMG_20260911_120019408_HDR_PORTRAIT.jpg' },
   { name: 'Anuj Dutta', role: 'Leader', image: '/images/IMG_20260730_173309589.jpg' },
-  { name: 'Debadri das', role: 'Backend Developer', image: 'images/IMG-20260925-WA0017.jpg' },
+  { name: 'Debadri das', role: 'Backend Developer', image: '/images/IMG-20260925-WA0017.jpg' },
   { name: 'Sharanya Bagchi', role: 'AI/ML', image: '/images/IMG_20260923_140217769_HDR.jpg' },
   { name: 'Priya Maity', role: 'Frontend Developer', image: '/images/IMG-20250916-WA0096.jpg' },
   { name: 'Rituraj pandey', role: 'Frontend Developer', image: '/images/IMG_20260723_175448670_HDR.jpg' },
