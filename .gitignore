@@ -12,7 +12,16 @@ dist/
 *.db
 .env
 data/
+!data/.gitkeep
+data/raw/
+data/interim/
+data/processed/
+data/datasets/
+data/reports/
+*.zarr/
+*.parquet
 ml/artifacts/*.pkl
+ml/artifacts/*.joblib
 !ml/artifacts/.gitkeep
 /mosdac_data_downloads/config.json
 mosdac_downloader/config.json
