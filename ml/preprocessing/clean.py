@@ -10,7 +10,12 @@ FEATURES = [
 
 
 def clean_frame(df):
+    """Normalize infinities without inventing values.
+
+    Imputation is performed by the estimator pipeline after the temporal
+    split, so validation and training retain missingness information.
+    """
     cleaned = df.copy()
     for column in FEATURES:
-        cleaned[column] = cleaned[column].fillna(cleaned[column].median()).clip(lower=0)
+        cleaned[column] = cleaned[column].replace([float("inf"), -float("inf")], float("nan"))
     return cleaned
