@@ -34,10 +34,7 @@ def build_unified_features() -> None:
     if not sat_files:
         raise FileNotFoundError("No satellite feature files found in data/derived/satellite")
 
-    # Load harmonized atmospheric files
-    imdaa_dir = ROOT / "data" / "imdaa"
-    yaas_era5 = xr.open_dataset(imdaa_dir / "yaas_era5_harmonized.nc") if (imdaa_dir / "yaas_era5_harmonized.nc").exists() else None
-    remal_era5 = xr.open_dataset(imdaa_dir / "remal_era5_harmonized.nc") if (imdaa_dir / "remal_era5_harmonized.nc").exists() else None
+    atmospheric_dir = ROOT / "data" / "processed" / "atmospheric_features"
 
     # Load QPE lookup
     qpe_files = sorted(ROOT.glob("data/derived/satellite/qpe_*.npz"))
@@ -45,7 +42,7 @@ def build_unified_features() -> None:
     for qf in qpe_files:
         with np.load(qf) as qd:
             q_ts = str(qd["timestamp"])
-            qpe_lookup[q_ts] = np.nan_to_num(qd["qpe_rate_mm_hr"], nan=0.0).astype(np.float32)
+            qpe_lookup[q_ts] = qd["qpe_rate_mm_hr"].astype(np.float32)
 
     output_dir = ROOT / "data" / "derived" / "unified"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -76,33 +73,15 @@ def build_unified_features() -> None:
                         best_qpe = q_arr
                 qpe = best_qpe if best_qpe is not None else np.full((114, 84), np.nan, dtype=np.float32)
 
-            # Atmospheric profile derivation
-            year = ts.year
-            if year == 2021 and yaas_era5 is not None:
-                # Find nearest time slice in Yaas ERA5
-                t_idx = int(np.argmin(np.abs(yaas_era5["time"].values - np.datetime64(ts))))
-                slice_ds = yaas_era5.isel(time=t_idx)
-                # IWV from specific humidity approximation or RH/temp
-                t_k = slice_ds["temperature"].values + 273.15
-                rh = slice_ds["relative_humidity"].values
-                u_w = slice_ds["u_wind"].values
-                v_w = slice_ds["v_wind"].values
-            elif year == 2024 and remal_era5 is not None:
-                t_idx = int(np.argmin(np.abs(remal_era5["time"].values - np.datetime64(ts))))
-                slice_ds = remal_era5.isel(time=t_idx)
-                t_k = slice_ds["temperature"].values + 273.15
-                rh = slice_ds["relative_humidity"].values
-                u_w = slice_ds["u_wind"].values
-                v_w = slice_ds["v_wind"].values
-            else:
-                        raise RuntimeError(
-                            f"No verified IMDAA/atmospheric profile dataset is available for {ts_str}; "
-                            "refusing synthetic thermodynamic features"
-                        )
-
-            # Compute IWV (kg/m^2)
-            # q ~ (rh / 100) * 0.622 * es / p
-            iwv = np.full((114, 84), np.nan, dtype=np.float32)
+            atmospheric_path = atmospheric_dir / f"atmospheric_{ts.strftime('%Y%m%dT%H%M%SZ')}.nc"
+            if not atmospheric_path.exists():
+                raise RuntimeError(f"No derived IMDAA atmospheric product for {ts_str}: {atmospheric_path}")
+            with xr.open_dataset(atmospheric_path) as atmospheric:
+                iwv = np.asarray(atmospheric["iwv"].values, dtype=np.float32)
+                cape = np.asarray(atmospheric["cape"].values, dtype=np.float32)
+                cin = np.asarray(atmospheric["cin"].values, dtype=np.float32)
+                convergence = np.asarray(atmospheric["horizontal_convergence"].values, dtype=np.float32)
+                wind_shear = np.asarray(atmospheric["wind_shear_0_6km"].values, dtype=np.float32)
 
             if previous_iwv is not None:
                 iwv_change = (iwv - previous_iwv).astype(np.float32)
@@ -110,21 +89,6 @@ def build_unified_features() -> None:
                 iwv_change = np.full_like(iwv, np.nan)
             previous_iwv = iwv
 
-            # CAPE & CIN for tropical cyclonic atmosphere (2000 J/kg, low CIN ~20 J/kg)
-            cape = np.full((114, 84), np.nan, dtype=np.float32)
-            cin = np.full((114, 84), np.nan, dtype=np.float32)
-
-            # Wind convergence (1/s) and vertical shear (m/s)
-            if u_w.ndim == 3 and v_w.ndim == 3:
-                u_sfc, v_sfc = u_w[0], v_w[0]
-                u_top, v_top = u_w[-1], v_w[-1]
-                wind_shear = np.hypot(u_top - u_sfc, v_top - v_sfc).astype(np.float32)
-            else:
-                wind_shear = np.full((114, 84), np.nan, dtype=np.float32)
-            # Low-level convergence proxy
-            convergence = np.full((114, 84), np.nan, dtype=np.float32)
-
-            # Surface rainfall rate (mm/hr)
             rainfall = np.full_like(qpe, np.nan, dtype=np.float32)
 
             channels = {

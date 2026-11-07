@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -15,11 +16,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def main() -> None:
     from ingestion.real_data import read_qpe
+    from ml.preprocessing.qpe import accumulate_rate
     files = sorted((ROOT / "data" / "insat" / "qpe").rglob("*.h5"))
     if not files:
         raise FileNotFoundError("No INSAT QPE HDF5 files found")
     output_dir = ROOT / "data" / "derived" / "satellite"
     output_dir.mkdir(parents=True, exist_ok=True)
+    products = []
     for path in files:
         product = read_qpe(path)
         values = np.asarray(product["qpe"], dtype=np.float32)
@@ -28,9 +31,26 @@ def main() -> None:
         aligned = np.full((114, 84), np.nan, dtype=np.float32)
         reproject(values, aligned, src_transform=source_transform, src_crs="EPSG:4326", dst_transform=from_bounds(85.7, 21.5, 89.9, 27.2, 84, 114), dst_crs="EPSG:4326", src_nodata=-999.0, dst_nodata=np.nan, resampling=Resampling.nearest)
         aligned[aligned < 0] = np.nan
-        target = output_dir / f"qpe_{product['observed_at'][:16].replace(':', '').replace('-', '').replace('T', '_')}.npz"
-        np.savez_compressed(target, timestamp=product["observed_at"], qpe_rate_mm_hr=aligned, qpe_1h_mm=np.full_like(aligned, np.nan), qpe_3h_mm=np.full_like(aligned, np.nan), qpe_6h_mm=np.full_like(aligned, np.nan))
-        target.with_suffix(".json").write_text(json.dumps({"source": str(path.relative_to(ROOT)), "units": "mm/hr", "aggregation": "1h/3h/6h unavailable because only one QPE timestamp is present; no temporal accumulation fabricated."}, indent=2), encoding="utf-8")
+        products.append((product["observed_at"], aligned))
+    products.sort(key=lambda item: item[0])
+    times = [datetime.fromisoformat(value.replace("Z", "+00:00")) for value, _ in products]
+    rates = np.stack([value for _, value in products])
+    for index, (observed_at, aligned) in enumerate(products):
+        accumulations = {
+            hours: accumulate_rate(rates[: index + 1], times[: index + 1], hours)
+            for hours in (1.0, 3.0, 6.0)
+        }
+        target = output_dir / f"qpe_{observed_at[:16].replace(':', '').replace('-', '').replace('T', '_')}.npz"
+        np.savez_compressed(
+            target,
+            timestamp=observed_at,
+            qpe_rate_mm_hr=aligned,
+            qpe_1h_mm=accumulations[1.0].value,
+            qpe_3h_mm=accumulations[3.0].value,
+            qpe_6h_mm=accumulations[6.0].value,
+            qpe_valid_mask=np.isfinite(aligned),
+        )
+        target.with_suffix(".json").write_text(json.dumps({"source": "INSAT-3DR HEM QPE", "units": "mm/hr", "aggregation": "coverage-aware rate integration; unavailable windows remain NaN"}, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":

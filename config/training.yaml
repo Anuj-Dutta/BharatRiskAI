@@ -6,3 +6,8 @@ weight_decay: 0.00001
 patience: 6
 num_workers: 0
 mixed_precision: true
+historical_period:
+  start_date: "2020-04-01"
+  end_date: "2020-09-27"
+  end_inclusive: true
+  timezone: "UTC"
