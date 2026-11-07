@@ -17,28 +17,12 @@ ARTIFACT = ROOT / "ml" / "artifacts" / "flood_risk_model.pkl"
 NOWCAST_ARTIFACT = ROOT / "ml" / "artifacts" / "weather_nowcast_model.pkl"
 
 
-def synthetic_dataset(rows: int = 900) -> pd.DataFrame:
-    rng = np.random.default_rng(42)
-    df = pd.DataFrame(
-        {
-            "rainfall_24h": rng.uniform(20, 240, rows),
-            "rainfall_7d": rng.uniform(80, 720, rows),
-            "elevation": rng.uniform(2, 24, rows),
-            "drainage_score": rng.uniform(20, 92, rows),
-            "population_density": rng.uniform(4000, 36000, rows),
-            "historical_flood_count": rng.integers(0, 16, rows),
-            "citizen_report_count": rng.integers(0, 9, rows),
-        }
-    )
-    df["risk_score"] = df.apply(lambda row: heuristic_predict(row.to_dict()), axis=1)
-    df["risk_score"] = (df["risk_score"] + rng.normal(0, 2.8, rows)).clip(0, 100)
-    return df
-
-
 def load_dataset() -> pd.DataFrame:
     if not DATASET.exists():
-        DATASET.parent.mkdir(parents=True, exist_ok=True)
-        synthetic_dataset().to_csv(DATASET, index=False)
+        raise FileNotFoundError(
+            f"Training dataset not found at {DATASET}. Supply a validated historical dataset; "
+            "synthetic training data is not generated automatically."
+        )
     df = pd.read_csv(DATASET)
     validate_frame(df)
     return clean_frame(df)
@@ -53,7 +37,7 @@ def main():
     metrics = evaluate_model(model, x_test, y_test)
     ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, ARTIFACT)
-    print({"artifact": str(ARTIFACT), "features": FEATURES, "metrics": metrics, "data": "deterministic synthetic demo dataset"})
+    print({"artifact": str(ARTIFACT), "features": FEATURES, "metrics": metrics, "data": str(DATASET.relative_to(ROOT))})
     
     # Persist the initialized nowcast wrapper until supervised training is available.
     nowcast_model = WeatherNowcastModel()
@@ -63,4 +47,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

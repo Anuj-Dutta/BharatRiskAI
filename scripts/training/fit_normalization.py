@@ -32,21 +32,16 @@ def fit_normalization(index_path: Path | None = None) -> dict:
     val_rows = [r for r in all_rows if r["split"] == "validation"]
     test_rows = [r for r in all_rows if r["split"] == "test"]
 
-    # 1. Strict Zero Data Leakage Verification
-    if len(train_rows) != 6:
-        raise ValueError(f"Strict constraint violated: expected exactly 6 training sequences, got {len(train_rows)}")
-    
-    unique_events = {r["event_id"] for r in train_rows}
-    if unique_events != {"2020-05-20"}:
-        raise ValueError(f"Strict constraint violated: training sequences must belong solely to Cyclone Amphan (2020-05-20), got {unique_events}")
+    if not train_rows:
+        raise ValueError("No training sequences are available for normalization.")
 
     print("=" * 80)
     print("DATA NORMALIZATION STAGE: ZERO DATA LEAKAGE VERIFICATION")
     print("=" * 80)
     print(f"Total dataset samples in index:   {len(all_rows)}")
-    print(f"Training sequences selected:      {len(train_rows)} (Cyclone Amphan, 2020-05-20)")
-    print(f"Validation sequences skipped:     {len(val_rows)} (Cyclone Yaas, 2021-05-26 - STRICT ZERO LEAKAGE)")
-    print(f"Test sequences skipped:           {len(test_rows)} (Cyclone Remal, 2024-05-26 - STRICT ZERO LEAKAGE)")
+    print(f"Training sequences selected:      {len(train_rows)}")
+    print(f"Validation sequences skipped:     {len(val_rows)}")
+    print(f"Test sequences skipped:           {len(test_rows)}")
     print(f"Validation/Test sequences read:   0 (VERIFIED)")
     print("-" * 80)
 

@@ -202,9 +202,14 @@ def main(argv: list[str] | None = None) -> None:
     
     # Event/date-group split: whole dates stay in exactly one split so frames from
     # the same day never leak across train/validation/test.
-    train_dates = {dates[0]}  # 2020-05-20 (Amphan)
-    validation_dates = {dates[1]}  # 2021-05-26 (Yaas)
-    test_dates = {dates[2]}  # 2024-05-26 (Remal)
+    # Chronological groups are assigned without event-name or year assumptions.
+    # This keeps each date wholly in one split and works for any historical span.
+    n_dates = len(dates)
+    train_end = max(1, int(n_dates * 0.6))
+    validation_end = max(train_end + 1, int(n_dates * 0.8))
+    train_dates = set(dates[:train_end])
+    validation_dates = set(dates[train_end:validation_end])
+    test_dates = set(dates[validation_end:])
 
     for row in samples:
         if row["event_id"] in train_dates:

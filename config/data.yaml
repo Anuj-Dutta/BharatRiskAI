@@ -18,3 +18,8 @@ common_grid:
   resolution_degrees: 0.05
   temporal_interval_minutes: 30
   rationale: "Approximately 4-8 km satellite source resolution; do not use the 30 m DEM pixel grid for ML."
+historical_period:
+  start_date: "2020-04-01"
+  end_date: "2020-09-27"
+  end_inclusive: true
+  timezone: UTC
