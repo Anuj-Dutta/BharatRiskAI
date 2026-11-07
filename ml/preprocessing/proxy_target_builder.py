@@ -33,10 +33,13 @@ def build_future_qpe_targets(
     if missing:
         raise ValueError(f"Missing target columns: {sorted(missing)}")
     frame = observations.copy()
+    if "grid_id" not in frame.columns:
+        # Backward-compatible single-grid records remain spatially unique.
+        frame["grid_id"] = "__default__"
     frame["issue_time"] = pd.to_datetime(frame["issue_time"], utc=True)
     frame["qpe_time"] = pd.to_datetime(frame["qpe_time"], utc=True)
     rows = []
-    for issue_time, group in frame.groupby("issue_time", sort=True):
+    for (issue_time, grid_id), group in frame.groupby(["issue_time", "grid_id"], sort=True):
         future_end = issue_time + pd.Timedelta(hours=config.horizon_hours)
         future = group[(group["qpe_time"] > issue_time) & (group["qpe_time"] <= future_end)]
         valid = future["qpe_accumulation_mm"].notna()
@@ -47,7 +50,7 @@ def build_future_qpe_targets(
             target = float((future["qpe_accumulation_mm"] >= config.threshold_mm).any())
             confidence, status = coverage, "ACCEPTED"
         rows.append({
-            "issue_time": issue_time, "target": target, "target_type": "binary_proxy",
+            "issue_time": issue_time, "grid_id": grid_id, "target": target, "target_type": "binary_proxy",
             "target_definition": config.definition, "target_source": "INSAT-3DR HEM QPE",
             "target_horizon": f"{config.horizon_hours:g}h", "target_confidence": confidence,
             "target_coverage": coverage, "target_version": config.version, "target_status": status,
@@ -56,7 +59,10 @@ def build_future_qpe_targets(
 
 
 def assert_future_only(features: pd.DataFrame, targets: pd.DataFrame) -> None:
-    if "issue_time" not in features or "issue_time" not in targets:
-        raise ValueError("features and targets require issue_time")
-    if features["issue_time"].duplicated().any():
-        raise ValueError("duplicate issue-time feature rows are not allowed")
+    required = {"issue_time", "grid_id"}
+    if not required.issubset(features) or not required.issubset(targets):
+        raise ValueError("features and targets require issue_time and grid_id")
+    if features.duplicated(["issue_time", "grid_id"]).any():
+        raise ValueError("duplicate issue-time/grid_id feature rows are not allowed")
+    if targets.duplicated(["issue_time", "grid_id"]).any():
+        raise ValueError("duplicate issue-time/grid_id target rows are not allowed")

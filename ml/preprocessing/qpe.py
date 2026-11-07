@@ -52,7 +52,7 @@ def accumulate_rate(
             if sorted_times[index] <= window_start or interval > window_hours:
                 continue
             valid = np.isfinite(sorted_rates[index])
-            total = np.where(valid, total + np.nan_to_num(sorted_rates[index]) * interval, total)
+            total = np.where(valid, total + sorted_rates[index] * interval, total)
             covered = np.where(valid, covered + interval, covered)
         required = window_hours * minimum_coverage
         result = np.where(covered >= required, total, np.nan)

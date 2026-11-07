@@ -77,10 +77,7 @@ def build_unified_features() -> None:
                     if diff < best_diff:
                         best_diff = diff
                         best_qpe = q_arr
-            if best_qpe is None:
-                qpe = np.full((114, 84), np.nan, dtype=np.float32)
-            else:
-                qpe = best_qpe
+                qpe = best_qpe if best_qpe is not None else np.full((114, 84), np.nan, dtype=np.float32)
 
             atmospheric = atmosphere_lookup.get(ts_str)
             if atmospheric is None:

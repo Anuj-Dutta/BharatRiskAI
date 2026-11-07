@@ -55,8 +55,6 @@ def fit_normalization(index_path: Path | None = None) -> dict:
             tgt = data["targets"] # [5, 3, 114, 84]
             assert inp.shape == (7, 13, 114, 84), f"Malformed input shape {inp.shape} in {npz_path}"
             assert tgt.shape == (5, 3, 114, 84), f"Malformed target shape {tgt.shape} in {npz_path}"
-            assert np.isfinite(inp).all(), f"Non-finite input values in {npz_path}"
-            assert np.isfinite(tgt).all(), f"Non-finite target values in {npz_path}"
             inputs_list.append(inp)
             targets_list.append(tgt)
 
@@ -75,6 +73,9 @@ def fit_normalization(index_path: Path | None = None) -> dict:
 
     for i, ch_name in enumerate(CHANNEL_ORDER):
         ch_vals = all_inputs[:, :, i, :, :].ravel().astype(np.float64)
+        ch_vals = ch_vals[np.isfinite(ch_vals)]
+        if ch_vals.size == 0:
+            raise ValueError(f"Training channel {CHANNEL_ORDER[i]} has no valid values")
         mu = float(ch_vals.mean())
         raw_sigma = float(ch_vals.std())
         sigma = float(max(raw_sigma, EPSILON))
@@ -114,6 +115,9 @@ def fit_normalization(index_path: Path | None = None) -> dict:
 
     for j, h_name in enumerate(TARGET_HAZARDS):
         h_vals = all_targets[:, :, j, :, :].ravel().astype(np.float64)
+        h_vals = h_vals[np.isfinite(h_vals)]
+        if h_vals.size == 0:
+            raise ValueError(f"Training target {h_name} has no valid values")
         t_mu = float(h_vals.mean())
         raw_t_sigma = float(h_vals.std())
         t_sigma = float(max(raw_t_sigma, EPSILON))
@@ -145,10 +149,10 @@ def fit_normalization(index_path: Path | None = None) -> dict:
     normalization_meta = {
         "schema_version": "1.0",
         "generated_at": generated_at,
-        "training_cyclone_id": "2020-05-20",
+        "training_event_ids": sorted({r["event_id"] for r in train_rows}),
         "training_sample_count": len(train_rows),
-        "validation_sample_count_ingested": 0,
-        "test_sample_count_ingested": 0,
+        "validation_sample_count_ingested": len(val_rows),
+        "test_sample_count_ingested": len(test_rows),
         "temporal_frames": 7,
         "forecast_horizons": 5,
         "spatial_grid_shape": [114, 84],

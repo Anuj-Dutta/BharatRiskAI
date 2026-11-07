@@ -10,4 +10,4 @@ historical_period:
   start_date: "2020-04-01"
   end_date: "2020-09-27"
   end_inclusive: true
-  timezone: UTC
+  timezone: "UTC"

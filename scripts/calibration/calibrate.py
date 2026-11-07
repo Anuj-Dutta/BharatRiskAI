@@ -99,13 +99,13 @@ def calibrate_validation() -> dict:
 
     # Strict runtime assertion required by contract
     assert set(val_df["split"].unique()) == {"val"}, "Zero Data Leakage violation: split must be exclusively 'val'"
-    assert len(val_df) == 7, f"Expected exactly 7 validation samples (Cyclone Yaas), got {len(val_df)}"
-    assert set(val_df["event_id"].unique()) == {"2021-05-26"}, f"Validation split must only contain Cyclone Yaas (2021-05-26), got {val_df['event_id'].unique()}"
+    if val_df.empty:
+        raise ValueError("Calibration requires a non-empty validation split")
 
     print("=" * 80)
     print("STAGE: PROBABILITY CALIBRATION (ZERO DATA LEAKAGE: VALIDATION SPLIT ONLY)")
     print("=" * 80)
-    print(f"Validation samples:     {len(val_df)} (Cyclone Yaas, 2021-05-26)")
+    print(f"Validation samples:     {len(val_df)} across events {sorted(val_df['event_id'].unique())}")
     print(f"Training samples used:  0 (STRICT ZERO LEAKAGE)")
     print(f"Test samples used:      0 (STRICT ZERO LEAKAGE)")
     print("-" * 80)
@@ -254,7 +254,7 @@ def calibrate_validation() -> dict:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "fitted_on": "validation",
         "validation_samples": len(val_df),
-        "validation_event_id": "2021-05-26",
+        "validation_event_ids": sorted(val_df["event_id"].unique().tolist()),
         "hazard_channels": list(HAZARDS),
         "models": calibration_models,
         "diagnostics": calibration_reports,
