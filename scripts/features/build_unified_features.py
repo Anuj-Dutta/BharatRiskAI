@@ -24,6 +24,9 @@ def build_unified_features() -> None:
     slope = dem_data["slope"].astype(np.float32)
     if not np.isfinite(elevation).all() or not np.isfinite(slope).all():
         raise RuntimeError("DEM contains missing cells; repair the source DEM before building unified features.")
+    terrain_metadata = dem_path.with_suffix(".json")
+    if not terrain_metadata.exists() or '"status": "unavailable"' in terrain_metadata.read_text(encoding="utf-8"):
+        raise RuntimeError("Unified feature construction requires a supplied hydrological drainage product; slope is not drainage.")
 
     sat_files = sorted(ROOT.glob("data/derived/satellite/[0-9]*.npz"))
     if not sat_files:
@@ -45,7 +48,7 @@ def build_unified_features() -> None:
     for qf in qpe_files:
         with np.load(qf) as qd:
             q_ts = str(qd["timestamp"])
-            qpe_lookup[q_ts] = np.nan_to_num(qd["qpe_rate_mm_hr"], nan=0.0).astype(np.float32)
+            qpe_lookup[q_ts] = qd["qpe_rate_mm_hr"].astype(np.float32)
 
     output_dir = ROOT / "data" / "derived" / "unified"
     output_dir.mkdir(parents=True, exist_ok=True)
