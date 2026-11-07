@@ -54,8 +54,6 @@ def train(path: str | Path, feature_columns: list[str], target_type: str, artifa
         raise ValueError("Classification training requires a binary 0/1 proxy target")
     train_frame, test_frame = time_split(frame)
     if target_type == "classification" and train_frame["target"].nunique() < 2:
-        raise ValueError("Classification training requires both proxy classes in the training period")
-    if target_type == "classification" and train_frame["target"].nunique() < 2:
         raise ValueError("The temporal training period must contain both proxy-target classes")
     model = build_model(target_type)
     model.fit(train_frame[feature_columns], train_frame["target"])

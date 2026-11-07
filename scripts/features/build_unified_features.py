@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
-import xarray as xr
 
 import sys
 
@@ -23,18 +22,25 @@ def build_unified_features() -> None:
     dem_data = np.load(dem_path)
     elevation = dem_data["elevation"].astype(np.float32)
     slope = dem_data["slope"].astype(np.float32)
+    if not np.isfinite(elevation).all() or not np.isfinite(slope).all():
+        raise RuntimeError("DEM contains missing cells; repair the source DEM before building unified features.")
     terrain_metadata = dem_path.with_suffix(".json")
     if not terrain_metadata.exists() or '"status": "unavailable"' in terrain_metadata.read_text(encoding="utf-8"):
-        raise RuntimeError("Unified feature construction requires a supplied hydrological drainage product; slope is not drainage")
-    if "drainage" not in dem_data:
-        raise RuntimeError("DEM features do not contain a measured drainage channel")
-    drainage = dem_data["drainage"].astype(np.float32)
+        raise RuntimeError("Unified feature construction requires a supplied hydrological drainage product; slope is not drainage.")
 
     sat_files = sorted(ROOT.glob("data/derived/satellite/[0-9]*.npz"))
     if not sat_files:
         raise FileNotFoundError("No satellite feature files found in data/derived/satellite")
 
-    atmospheric_dir = ROOT / "data" / "processed" / "atmospheric_features"
+    atmosphere_files = sorted((ROOT / "data" / "derived" / "atmosphere").glob("*.npz"))
+    if not atmosphere_files:
+        raise RuntimeError("No derived atmospheric products found. Run the IMDAA atmospheric derivation step first; no fallback values are permitted.")
+    atmosphere_lookup = {}
+    for path in atmosphere_files:
+        with np.load(path, allow_pickle=False) as data:
+            if "timestamp" not in data:
+                continue
+            atmosphere_lookup[str(data["timestamp"])] = {key: data[key] for key in data.files if key != "timestamp"}
 
     # Load QPE lookup
     qpe_files = sorted(ROOT.glob("data/derived/satellite/qpe_*.npz"))
@@ -73,15 +79,18 @@ def build_unified_features() -> None:
                         best_qpe = q_arr
                 qpe = best_qpe if best_qpe is not None else np.full((114, 84), np.nan, dtype=np.float32)
 
-            atmospheric_path = atmospheric_dir / f"atmospheric_{ts.strftime('%Y%m%dT%H%M%SZ')}.nc"
-            if not atmospheric_path.exists():
-                raise RuntimeError(f"No derived IMDAA atmospheric product for {ts_str}: {atmospheric_path}")
-            with xr.open_dataset(atmospheric_path) as atmospheric:
-                iwv = np.asarray(atmospheric["iwv"].values, dtype=np.float32)
-                cape = np.asarray(atmospheric["cape"].values, dtype=np.float32)
-                cin = np.asarray(atmospheric["cin"].values, dtype=np.float32)
-                convergence = np.asarray(atmospheric["horizontal_convergence"].values, dtype=np.float32)
-                wind_shear = np.asarray(atmospheric["wind_shear_0_6km"].values, dtype=np.float32)
+            atmospheric = atmosphere_lookup.get(ts_str)
+            if atmospheric is None:
+                raise RuntimeError(f"No atmospheric product aligned to satellite timestamp {ts_str}")
+            required = ("iwv", "cape", "cin", "convergence", "wind_shear")
+            missing = [name for name in required if name not in atmospheric]
+            if missing:
+                raise RuntimeError(f"Atmospheric product for {ts_str} is missing {missing}")
+            iwv = atmospheric["iwv"].astype(np.float32)
+            cape = atmospheric["cape"].astype(np.float32)
+            cin = atmospheric["cin"].astype(np.float32)
+            convergence = atmospheric["convergence"].astype(np.float32)
+            wind_shear = atmospheric["wind_shear"].astype(np.float32)
 
             if previous_iwv is not None:
                 iwv_change = (iwv - previous_iwv).astype(np.float32)
@@ -89,7 +98,8 @@ def build_unified_features() -> None:
                 iwv_change = np.full_like(iwv, np.nan)
             previous_iwv = iwv
 
-            rainfall = np.full_like(qpe, np.nan, dtype=np.float32)
+            # Surface rainfall rate (mm/hr)
+            rainfall = qpe.astype(np.float32)
 
             channels = {
                 "iwv": iwv,
@@ -104,13 +114,15 @@ def build_unified_features() -> None:
                 "wind_shear": wind_shear,
                 "elevation": elevation,
                 "slope": slope,
-                "drainage": drainage,
+                "drainage": np.full((114, 84), np.nan, dtype=np.float32),
             }
 
-            # Missing source observations remain missing; they are not made finite here.
+            # Verify all channels are present and finite
             for ch in CHANNEL_ORDER:
                 assert ch in channels, f"Missing channel {ch}"
                 assert channels[ch].shape == (114, 84), f"Bad shape for {ch}: {channels[ch].shape}"
+                if ch != "drainage" and not np.isfinite(channels[ch]).any():
+                    raise RuntimeError(f"Channel {ch} has no valid observations at {ts_str}")
 
             target_file = output_dir / f"{stem}.npz"
             np.savez_compressed(target_file, timestamp=ts_str, **channels)

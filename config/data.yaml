@@ -1,11 +1,6 @@
 data_root: .
 reports_dir: data/reports
 dataset_version: "2026-01"
-historical_period:
-  start_date: "2020-04-01"
-  end_date: "2020-09-27"
-  end_inclusive: true
-  timezone: "UTC"
 study_region:
   west: 85.7
   south: 21.5
@@ -27,6 +22,11 @@ common_grid:
   dimensions: [114, 84]
   temporal_interval_minutes: 30
   rationale: "Approximately 4-8 km satellite source resolution; do not use the 30 m DEM pixel grid for ML."
+historical_period:
+  start_date: "2020-04-01"
+  end_date: "2020-09-27"
+  end_inclusive: true
+  timezone: "UTC"
 alignment:
   max_time_difference_minutes: 15
   interpolation: "disabled_by_default"
