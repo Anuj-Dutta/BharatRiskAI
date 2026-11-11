@@ -5,7 +5,7 @@ This pipeline is an AI nowcasting layer over observed satellite/reanalysis input
 The metadata-first ingestion command is:
 
 ```powershell
-python -m ml.ingestion.batch_ingest --config config/data.yaml --inspect --all
+python -m ml.ingestion.batch_ingest --config configs/application/data.yaml --inspect --all
 ```
 
 See [docs/data-pipeline-contract.md](docs/data-pipeline-contract.md) for the
@@ -59,7 +59,7 @@ Satellite WV is stored as calibrated radiance and is never mislabeled as IWV. IM
 
 ## Labels and training
 
-`labels/build_labels.py` writes provenance-rich tri-state records with hazard, label, label_type, source, threshold, accumulation window, timestamp, spatial rule, confidence, and provenance. `null` means unknown, never negative. Thresholds come only from `config/labels.yaml`:
+`labels/build_labels.py` writes provenance-rich tri-state records with hazard, label, label_type, source, threshold, accumulation window, timestamp, spatial rule, confidence, and provenance. `null` means unknown, never negative. Thresholds come only from `configs/application/labels.yaml`:
 
 - `thunderstorm`: satellite-signature proxy (CTT proxy <= -40 C AND CTT-proxy cooling >= 2.0 C/hr on observed L1C features). Pixels without finite TIR1/cooling are unknown.
 - `cloudburst`: QPE-rate proxy at the configured threshold (100 mm in 1 hour, conventional definition recorded in the config; pending authoritative confirmation).
@@ -87,7 +87,7 @@ Current stage results (all intentional, reproducible hard stops):
 | normalize | blocked: no final dataset index | stderr |
 | train | blocked: no final dataset index | `reports/training_blocked.json` |
 | calibrate | blocked: no validation predictions | `models/calibration/calibration_blocked.json`, `reports/calibration_report.json` |
-| thresholds | blocked: no validation predictions; `config/alerts.yaml` thresholds stay null | `reports/threshold_selection.json` |
+| thresholds | blocked: no validation predictions; `configs/application/alerts.yaml` thresholds stay null | `reports/threshold_selection.json` |
 | evaluate | blocked: no test predictions | `reports/test_metrics.json` / `.csv` |
 
 Training (`scripts/training/train_multitask.py`) includes deterministic seeds, CPU/CUDA support, optional `--amp` mixed precision, focal loss with a positive-class weight derived from the actual training-label imbalance, early stopping (`--patience`), checkpointing to `models/checkpoints/best.pt`, and validation loss/Brier metrics per epoch. A smoke test may only run after `dataset_validation.json` reports no critical failures; it must never be reported as a trained or evaluated model.

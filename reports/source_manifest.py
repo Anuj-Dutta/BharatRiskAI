@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST_PATH = ROOT / "config" / "source_manifest.json"
+MANIFEST_PATH = ROOT / "configs" / "application" / "source_manifest.json"
 VALID_STATUSES = {"available", "missing", "optional"}
 
 

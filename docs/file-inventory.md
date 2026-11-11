@@ -87,11 +87,14 @@ Routes observed in [`backend/api/`](../backend/api/):
 
 ## Database, configuration, docs, and deployment
 
-- Database: `database/init.sql`, `database/seed.py`, `supabase_schema.sql`
-- Configuration: `config/alerts.yaml`, `calibration.yaml`, `data.yaml`, `labels.yaml`, `model.yaml`, `source_manifest.json`, `training.yaml`, `.env.example`
+- Database: `backend/database/schema/supabase_schema.sql`, `backend/database/schema/init.sql`, `database/seed.py`
+- Configuration: `configs/application/alerts.yaml`, `calibration.yaml`, `data.yaml`, `labels.yaml`, `model.yaml`, `source_manifest.json`, `training.yaml`, `.env.example`
 - Deployment: `docker-compose.yml`, `infra/Dockerfile.backend`, `infra/Dockerfile.frontend`, `infra/Dockerfile.worker`, `infra/nginx.conf`
-- Documentation: `README.md`, `README_DATA_PIPELINE.md`, `docs/api.md`, `docs/architecture.md`, `docs/deployment.md`, `docs/ml-model.md`
-- Top-level utilities/tests: `create_flood_mask.py`, `create_thunderstorm_labels.py`, `extract_labels.py`, `final_verification.py`, `format_labels.py`, `merge_dem.py`, `process_remal.py`, `process_yaas.py`, `test_connection.py`, `test_db_connection.py`, `test_nowcast.py`, `test_supabase_url.py`, `log_config.json`, `Makefile`
+- Documentation: `README.md`, `docs/data-pipeline-guide.md`, `docs/api.md`, `docs/architecture.md`, `docs/deployment.md`, `docs/ml-model.md`
+- Data-pipeline utilities: `data_pipeline/geospatial/`, `data_pipeline/labels/`
+- Manual integration probes: `tests/integration/manual/`
+- Runtime verification: `scripts/validation/final_verification.py`
+- Configuration and logs: `configs/log_config.json`, `artifacts/logs/`, `Makefile`
 
 ## External dependencies
 

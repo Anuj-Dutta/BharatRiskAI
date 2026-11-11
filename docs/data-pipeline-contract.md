@@ -21,8 +21,8 @@ Run the metadata registry and optional sample inspection from the repository
 root:
 
 ```powershell
-python -m ml.ingestion.batch_ingest --config config/data.yaml --inspect --all
-python -m ml.ingestion.batch_ingest --config config/data.yaml --source insat_l1c --inspect
+python -m ml.ingestion.batch_ingest --config configs/application/data.yaml --inspect --all
+python -m ml.ingestion.batch_ingest --config configs/application/data.yaml --source insat_l1c --inspect
 ```
 
 The registry records SHA-256, source product, file format, readability,

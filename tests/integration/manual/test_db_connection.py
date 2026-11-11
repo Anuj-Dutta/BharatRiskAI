@@ -2,10 +2,6 @@
 Test script to manually verify the database connection and the get_zone_nowcast function.
 """
 
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "backend")))
-
 from backend.database.connection import get_supabase_admin_client
 from backend.services.nowcast_service import get_zone_nowcast
 

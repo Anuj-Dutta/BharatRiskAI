@@ -185,8 +185,8 @@ def select_thresholds() -> dict:
 
     thresholds_json_path.write_text(json.dumps(thresholds_payload, indent=2), encoding="utf-8")
 
-    # Also update config/alerts.yaml for downstream evaluation compatibility
-    config_dir = ROOT / "config"
+    # Also update configs/application/alerts.yaml for downstream evaluation compatibility
+    config_dir = ROOT / "configs" / "application"
     config_dir.mkdir(parents=True, exist_ok=True)
     alerts_yaml_path = config_dir / "alerts.yaml"
 

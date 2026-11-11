@@ -61,7 +61,7 @@ def run(config: Path, source: str | None = None, inspect: bool = False) -> dict[
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=Path, default=Path("config/data.yaml"))
+    parser.add_argument("--config", type=Path, default=Path("configs/application/data.yaml"))
     parser.add_argument("--source", choices=["insat_l1c", "insat_qpe", "insat_cmv", "imdaa", "dem"])
     parser.add_argument("--inspect", action="store_true")
     parser.add_argument("--all", action="store_true")

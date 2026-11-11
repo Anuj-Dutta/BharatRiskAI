@@ -6,8 +6,8 @@ import json
 import numpy as np
 import torch
 
-# Ensure the root directory is in sys.path
-ROOT = Path(__file__).resolve().parent
+# Ensure the repository root is in sys.path
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from ml.nowcasting.inference import NowcastingInferenceEngine

@@ -10,10 +10,10 @@
 | API routes | [`backend/api/`](../backend/api/) | Health, dashboard, nowcast, zones, reports, emergencies, recommendations, satellite |
 | Domain services | [`backend/services/`](../backend/services/) | Risk, nowcast, reports, emergencies, recommendations, state, geospatial, alerts |
 | Provider ingestion | [`ingestion/`](../ingestion/) | Weather, INSAT, IMDAA, QPE, satellite, elevation, DEM, population, drainage, flood-history adapters |
-| ML runtime | [`ml/nowcasting/`](../ml/nowcasting/) and [`ml/models/`](../ml/models/) | Feature construction, checkpoint loading, multi-task inference, baseline/risk model loading |
+| ML runtime | [`ml/nowcasting/`](../ml/nowcasting/), [`ml/models/`](../ml/models/) and [`deep_learning/architectures/`](../deep_learning/architectures/) | Feature construction, checkpoint loading, multi-task inference, neural architectures and baseline/risk model loading |
 | Offline/training pipeline | [`ml/preprocessing/`](../ml/preprocessing/), [`ml/training/`](../ml/training/), [`scripts/`](../scripts/) | Dataset validation, feature transforms, training, calibration, evaluation, replay |
 | Scheduled worker | [`worker/worker.py`](../worker/worker.py) | Periodic satellite/weather sync, risk update, report processing, alert processing |
-| Persistence | [`backend/database/`](../backend/database/), [`supabase_schema.sql`](../supabase_schema.sql), [`database/`](../database/) | Supabase remote client with local fallback; schema and seed/init assets |
+| Persistence | [`backend/database/`](../backend/database/), [`backend/database/schema/supabase_schema.sql`](../backend/database/schema/supabase_schema.sql), [`database/`](../database/) | Supabase remote client with local fallback; schema and seed/init assets |
 | Web UI | [`frontend/src/`](../frontend/src/) | React dashboard, stores, API clients, offline queues, map and emergency/report views |
 | Deployment | [`docker-compose.yml`](../docker-compose.yml), [`infra/`](../infra/) | Backend container, Vite-built nginx frontend, reverse proxy |
 
@@ -119,7 +119,7 @@ flowchart LR
 
 ### Persistence and fallback
 
-[`backend/database/connection.py`](../backend/database/connection.py#L11) chooses Supabase when non-demo settings are configured and reachable. Any remote connection exception falls back to [`backend/database/local_db.py`](../backend/database/local_db.py), which provides local persistence. The database contract is declared in [`supabase_schema.sql`](../supabase_schema.sql); [`database/init.sql`](../database/init.sql) currently contains only indexes.
+[`backend/database/connection.py`](../backend/database/connection.py#L11) chooses Supabase when non-demo settings are configured and reachable. Any remote connection exception falls back to [`backend/database/local_db.py`](../backend/database/local_db.py), which provides local persistence. The database contract is declared in [`backend/database/schema/supabase_schema.sql`](../backend/database/schema/supabase_schema.sql); [`backend/database/schema/init.sql`](../backend/database/schema/init.sql) currently contains only indexes.
 
 ## Audit findings and stabilization risks
 
@@ -128,7 +128,7 @@ These are findings for the stabilization phase, not changes made by this audit.
 1. **Frontend dependency reproducibility:** [`frontend/package.json`](../frontend/package.json) uses `latest` for several runtime and test dependencies. This makes clean builds non-reproducible.
 2. **Frontend build failure observed:** the existing Vite build failed while resolving files from `lucide-react` under `node_modules`; the existing runtime test and dev-server probe passed after dependency installation. This should be reproduced from a clean install before changing application code.
 3. **Two persistence contracts:** Supabase and local fallback have different operational characteristics; parity of schema, constraints, and query behavior needs explicit tests.
-4. **Database policy exposure:** [`supabase_schema.sql`](../supabase_schema.sql) grants broad anonymous/authenticated read/insert/update policies for several tables. Security review and production policy approval are required before deployment.
+4. **Database policy exposure:** [`backend/database/schema/supabase_schema.sql`](../backend/database/schema/supabase_schema.sql) grants broad anonymous/authenticated read/insert/update policies for several tables. Security review and production policy approval are required before deployment.
 5. **Worker execution is a simple loop:** [`worker/worker.py`](../worker/worker.py) has no durable scheduler/queue boundary in the observed code. Retries, overlap prevention, and task observability should be addressed before production operation.
 6. **Documentation drift:** [`docs/architecture.md`](architecture.md) describes an Android Kotlin mesh-SOS component that is not present in the repository snapshot, while current source implements web mesh-state UI components only.
 7. **Configuration/provider readiness:** live Copernicus, MOSDAC, IMDAA, SMTP, webhook, and Supabase integrations depend on environment configuration that was not present in source and was not validated in this audit.

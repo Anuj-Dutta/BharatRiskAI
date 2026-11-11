@@ -1244,3 +1244,18 @@ BharatRiskAI aims to combine **space-based observations, atmospheric science, ma
 ## 📄 License
 
 See the `LICENSE` file in this repository.
+
+## Repository map
+
+- `frontend/` - React/Vite dashboard
+- `backend/` - FastAPI API, services, schemas and database access
+- `ml/` - traditional ML, preprocessing and runtime facades
+- `deep_learning/` - canonical neural architectures
+- `ingestion/` and `scripts/` - data ingestion and pipeline stages
+- `experiments/algorithm_comparison/` - isolated experimental benchmarks
+- `tests/` - automated tests
+- `configs/`, `infra/`, `docs/` - configuration, deployment and documentation
+- `data/`, `models/`, `reports/` - datasets and generated artifacts
+
+See [docs/repository-architecture.md](docs/repository-architecture.md) for
+the architecture audit and migration decisions.

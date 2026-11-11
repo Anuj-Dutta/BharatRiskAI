@@ -10,6 +10,7 @@ import os
 import sys
 import time
 import logging
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 import requests
@@ -20,11 +21,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 from ml.nowcasting.inference import NowcastingInferenceEngine
 
 # Configure logging
+LOG_PATH = Path(__file__).resolve().parents[2] / "artifacts" / "logs" / "live_ingestion.log"
+LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('live_ingestion.log'),
+        logging.FileHandler(
+            LOG_PATH
+        ),
         logging.StreamHandler()
     ]
 )
