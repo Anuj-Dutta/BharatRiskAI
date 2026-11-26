@@ -146,9 +146,11 @@ def calibrate_validation() -> dict:
             tgt = np.load(ROOT / row["target_path"], allow_pickle=False)["targets"]  # [5, 3, 114, 84]
             raw_in = data["inputs"]  # [7, 13, 114, 84]
 
-            norm_in = (raw_in - seq_means) / seq_stds
+            in_valid = np.isfinite(raw_in)
+            norm_in = np.where(in_valid, (raw_in - seq_means) / seq_stds, 0.0).astype(np.float32)
             raw_base = raw_in[-1, list(BASELINE_INDICES), :, :]
-            norm_base = (raw_base - base_means) / base_stds
+            base_valid = np.isfinite(raw_base)
+            norm_base = np.where(base_valid, (raw_base - base_means) / base_stds, 0.0).astype(np.float32)
 
             in_t = torch.from_numpy(norm_in).unsqueeze(0).float().to(device)
             base_t = torch.from_numpy(norm_base).unsqueeze(0).float().to(device)

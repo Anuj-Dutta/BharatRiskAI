@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics import average_precision_score
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -99,6 +100,13 @@ def compute_metrics(
 
 
 def evaluate_test_split() -> dict:
+    index_path = ROOT / "data" / "datasets" / "final" / "index.csv"
+    if index_path.exists():
+        df = pd.read_csv(index_path)
+        test_df = df[df["split"].isin(["test"])].copy()
+    else:
+        test_df = pd.DataFrame([{"event_id": "cyclone_remal_2024"}])
+
     test_pred_path = ROOT / "data" / "datasets" / "final" / "test_predictions.npz"
     if not test_pred_path.exists():
         raise FileNotFoundError(
