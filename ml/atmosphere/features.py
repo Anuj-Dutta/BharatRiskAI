@@ -20,10 +20,17 @@ def specific_humidity_from_relative_humidity(
         pressure = pressure * 100.0
     if np.nanmedian(temperature) < 150:
         raise ValueError("temperature_k must be in kelvin")
-    if np.nanmin(rh) < 0 or np.nanmax(rh) > 100:
-        raise ValueError("relative humidity must be in percent in the range 0..100")
+    valid_rh = rh[np.isfinite(rh)]
+    if valid_rh.size > 0:
+        median_rh = np.nanmedian(valid_rh)
+        if median_rh < 0.0 or median_rh > 150.0:
+            raise ValueError("relative humidity must be in percent in the range 0..100")
+        if 0.0 <= median_rh <= 1.5 and np.nanmax(valid_rh) <= 2.0:
+            rh = rh * 100.0
+    rh = np.clip(rh, 0.0, 100.0)
+    temperature, rh, pressure = np.broadcast_arrays(temperature, rh, pressure)
     valid = np.isfinite(temperature) & np.isfinite(rh) & np.isfinite(pressure) & (pressure > 0)
-    result = np.full(np.broadcast(temperature, rh, pressure).shape, np.nan, dtype=float)
+    result = np.full(temperature.shape, np.nan, dtype=float)
     tc = temperature - 273.15
     saturation_hpa = 6.112 * np.exp((17.67 * tc) / (tc + 243.5))
     vapour_hpa = (rh / 100.0) * saturation_hpa
@@ -70,7 +77,7 @@ def bulk_wind_shear_0_6km(
     for index in np.ndindex(u.shape[1:]):
         z = height[(slice(None),) + index]
         valid = np.isfinite(z) & np.isfinite(u[(slice(None),) + index]) & np.isfinite(v[(slice(None),) + index])
-        if valid.sum() < 2 or np.nanmin(z[valid]) > 0 or np.nanmax(z[valid]) < 6000:
+        if valid.sum() < 2 or np.nanmin(z[valid]) > 500.0 or np.nanmax(z[valid]) < 5500.0:
             continue
         order = np.argsort(z[valid])
         levels = z[valid][order]
@@ -104,7 +111,7 @@ def surface_based_cape_cin(
     order = np.argsort(pressure)[::-1]
     pressure = pressure[order]
     temperature = temperature[order]
-    humidity = humidity[order]
+    humidity = np.clip(humidity[order], 0.0, 100.0)
     cape = np.full(temperature.shape[1:], np.nan)
     cin = np.full(temperature.shape[1:], np.nan)
     for index in np.ndindex(cape.shape):
